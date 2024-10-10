@@ -1,0 +1,32 @@
+services:
+  mssql-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest  # Use the MSSQL image
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrongPassword!  # Change this to a strong password
+    ports:
+      - "1433:1433"
+    networks:
+      - app-network
+    volumes:
+      - mssql-data:/var/opt/mssql
+  
+  webapp:
+    build:
+      context: ./docker-compose-demo-api/  # Use the current directory as the build context
+      dockerfile: Dockerfile
+    depends_on:
+      - mssql-db  # Ensure the MSSQL container starts before the web app
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=mssql-db;Database=YourDatabase;User Id=sa;Password=YourStrongPassword!;TrustServerCertificate=True;;
+    ports:
+      - "5233:80"  # Expose port 5233 for the web app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mssql-data:
