@@ -46,8 +46,40 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
-app.MapGet("/blogs", async () => await context.Blogs.ToArrayAsync())
+app.MapGet("/blogs", async () => await context.Blogs
+    .Select(m => new GetBlogDto(m.Url, m.Posts
+                .Select(p => new GetPostDto(p.PostId, p.Title, p.Content, m.BlogId)).ToList())
+            ).ToListAsync())
 .WithName("GetBlogs")
+.WithOpenApi();
+
+app.MapPost("/blogs", async (CreateBlogDto dto) =>
+{
+    var blog = new Blog()
+    {
+        Url = dto.Url
+    };
+    await context.Blogs.AddAsync(blog);
+    await context.SaveChangesAsync();
+    return Results.Created();
+})
+.WithName("CreateBlog")
+.WithOpenApi();
+
+
+app.MapPost("/posts", async (CreatePostDto dto) =>
+{
+    var post = new Post()
+    {
+        BlogId = dto.BlogId,
+        Title = dto.Title,
+        Content = dto.Content
+    };
+    await context.Posts.AddAsync(post);
+    await context.SaveChangesAsync();
+    return Results.Created();
+})
+.WithName("CreatePost")
 .WithOpenApi();
 
 app.Run();
@@ -56,3 +88,9 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
+record CreateBlogDto(string Url);
+record GetBlogDto(string Url, List<GetPostDto> Posts);
+
+record CreatePostDto(int BlogId, string Title, string Content);
+record GetPostDto(int Id, string Title, string Content, int BlogId);
